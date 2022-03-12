@@ -34,17 +34,11 @@ class FilterRecording(se.RecordingExtractor):
         filtered_chunk_list = []
         for ich in range(ich1, ich2 + 1):
             filtered_chunk0 = self._get_filtered_chunk(ich)
-            if ich == ich1:
-                start0 = start_frame - ich * self._chunk_size
-            else:
-                start0 = 0
-            if ich == ich2:
-                end0 = end_frame - ich * self._chunk_size
-            else:
-                end0 = self._chunk_size
+            start0 = start_frame - ich * self._chunk_size if ich == ich1 else 0
+            end0 = end_frame - ich * self._chunk_size if ich == ich2 else self._chunk_size
             chan_idx = [self.get_channel_ids().index(chan) for chan in channel_ids]
             filtered_chunk_list.append(filtered_chunk0[chan_idx, start0:end0])
-        if len(filtered_chunk_list) > 0:
+        if filtered_chunk_list:
             return np.concatenate(filtered_chunk_list, axis=1)
         else:
             return np.zeros((len(channel_ids), 0))
@@ -56,5 +50,4 @@ class FilterRecording(se.RecordingExtractor):
     def _get_filtered_chunk(self, ind):
         start0 = ind * self._chunk_size
         end0 = (ind + 1) * self._chunk_size
-        chunk1 = self.filterChunk(start_frame=start0, end_frame=end0)
-        return chunk1
+        return self.filterChunk(start_frame=start0, end_frame=end0)

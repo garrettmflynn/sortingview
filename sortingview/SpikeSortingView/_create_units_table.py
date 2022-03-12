@@ -37,8 +37,15 @@ def create_units_table(self, *, unit_ids: List[int], unit_metrics: Union[List[di
         }
     ]
     if unit_metrics is not None:
-        for u in unit_metrics:
-            columns.append({'key': f'metric:{u["name"]}', 'label': u['label'], 'dtype': 'float'})
+        columns.extend(
+            {
+                'key': f'metric:{u["name"]}',
+                'label': u['label'],
+                'dtype': 'float',
+            }
+            for u in unit_metrics
+        )
+
     rows = []
     for unit_id in unit_ids:
         spike_train = self.get_unit_spike_train(unit_id=unit_id)
@@ -59,7 +66,7 @@ def create_units_table(self, *, unit_ids: List[int], unit_metrics: Union[List[di
         rows.append({
             'unitId': unit_id,
             'values': values
-        }) 
+        })
     data = {
         'type': 'UnitsTable',
         'columns': columns,
@@ -68,5 +75,4 @@ def create_units_table(self, *, unit_ids: List[int], unit_metrics: Union[List[di
     return Figure(data=data, label=label)
 
 def estimate_noise_level(traces: np.ndarray):
-    est_noise_level = np.median(np.abs(traces - np.mean(traces, axis=0))) / 0.6745  # median absolute deviation (MAD) estimate of stdev
-    return est_noise_level
+    return np.median(np.abs(traces - np.mean(traces, axis=0))) / 0.6745

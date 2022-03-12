@@ -49,8 +49,6 @@ class BandpassFilterRecording(FilterRecording):
         # improved ahb, changing tanh to erf, correct -3dB pts  6/14/16
         T = N / samplerate  # total time
         df = 1 / T  # frequency grid
-        relwid = 3.0  # relative bottom-end roll-off width param, kills low freqs by factor 1e-5.
-
         k_inds = np.arange(0, N)
         k_inds = np.where(k_inds <= (N + 1) / 2, k_inds, k_inds - N)
 
@@ -59,6 +57,8 @@ class BandpassFilterRecording(FilterRecording):
 
         val = np.ones(fgrid.shape)
         if freq_min != 0:
+            relwid = 3.0  # relative bottom-end roll-off width param, kills low freqs by factor 1e-5.
+
             val = val * (1 + special.erf(relwid * (absf - freq_min) / freq_min)) / 2  # pylint: disable=no-member
             val = np.where(np.abs(k_inds) < 0.1, 0, val)  # kill DC part exactly
         if freq_max != 0:
@@ -81,22 +81,15 @@ class BandpassFilterRecording(FilterRecording):
             samplerate,
             self._params['freq_min'], self._params['freq_max'], self._params['freq_wid']
         )
-        kernel = kernel[0:chunk_fft.shape[1]]  # because this is the DFT of real data
+        kernel = kernel[:chunk_fft.shape[1]]
         chunk_fft = chunk_fft * np.tile(kernel, (M, 1))
-        chunk_filtered = scipy.fft.irfft(chunk_fft, workers=1)
-        return chunk_filtered
+        return scipy.fft.irfft(chunk_fft, workers=1)
 
     def _read_chunk(self, i1, i2):
         M = len(self._recording.get_channel_ids())
         N = self._recording.get_num_frames()
-        if i1 < 0:
-            i1b = 0
-        else:
-            i1b = i1
-        if i2 > N:
-            i2b = N
-        else:
-            i2b = i2
+        i1b = max(i1, 0)
+        i2b = N if i2 > N else i2
         ret = np.zeros((M, i2 - i1))
         ret[:, i1b - i1:i2b - i1] = self._recording.get_traces(start_frame=i1b, end_frame=i2b)
         return ret

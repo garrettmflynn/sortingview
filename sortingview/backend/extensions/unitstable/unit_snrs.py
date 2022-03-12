@@ -31,8 +31,7 @@ def _compute_unit_snr_from_waveforms(waveforms):
     mean_subtracted_waveforms_on_peak_channel = waveforms[:, peak_channel_index, :] - average_waveform[peak_channel_index]
     est_noise_level = np.median(np.abs(mean_subtracted_waveforms_on_peak_channel.squeeze())) / 0.6745  # median absolute deviation (MAD) estimate of stdev
     peak_channel_amplitude = channel_amplitudes[peak_channel_index]
-    snr = peak_channel_amplitude / est_noise_level
-    return snr
+    return peak_channel_amplitude / est_noise_level
 
 @kc.taskfunction('get_unit_snrs.1', type='pure-calculation')
 def task_get_unit_snrs(sorting_object, recording_object, configuration={}, snippet_len=(50, 80)):

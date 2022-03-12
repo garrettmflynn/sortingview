@@ -38,29 +38,23 @@ class TimeseriesModel_Hdf5:
             t1a = max(t1, 0)
             t2a = min(t2, self.numTimepoints())
             ret[:, t1a-(t1):t2a-(t1)] = self.getChunk(t1=t1a, t2=t2a, channel_inds=channel_inds)
-            return ret
         else:
             c1 = int(t1/self._chunk_size)
             c2 = int((t2-1)/self._chunk_size)
             ret = np.zeros((len(channel_inds), t2-t1))
             with h5py.File(self._hdf5_path, "r") as f:
                 for cc in range(c1, c2+1):
-                    if cc == c1:
-                        t1a = t1
-                    else:
-                        t1a = self._chunk_size*cc
-                    if cc == c2:
-                        t2a = t2
-                    else:
-                        t2a = self._chunk_size*(cc+1)
+                    t1a = t1 if cc == c1 else self._chunk_size*cc
+                    t2a = t2 if cc == c2 else self._chunk_size*(cc+1)
                     for ii in range(len(channel_inds)):
                         m = channel_inds[ii]
                         assert(cc >= 0)
                         assert(cc < self._num_chunks)
-                        str = 'part-{}-{}'.format(m, cc)
+                        str = f'part-{m}-{cc}'
                         offset = self._chunk_size*cc-self._padding
                         ret[ii, t1a-t1:t2a-t1] = cast(np.ndarray, f[str])[t1a-offset:t2a-offset]
-            return ret
+
+        return ret
 
 
 class TimeseriesModel_Recording:
@@ -78,15 +72,14 @@ class TimeseriesModel_Recording:
         channels2 = np.zeros(len(channels))
         for i in range(len(channels)):
             channels2[i] = channel_ids[int(channels[i])]
-        if (t1 < 0) or (t2 > self.numTimepoints()):
-            ret = np.zeros((len(channels), t2-t1))
-            t1a = np.maximum(t1, 0)
-            t2a = np.minimum(t2, self.numTimepoints())
-            ret[:, t1a-(t1):t2a-(t1)] = self.getChunk(t1=t1a,
-                                                      t2=t2a, channels=channels)
-            return ret
-        else:
+        if t1 >= 0 and t2 <= self.numTimepoints():
             return self._recording.get_traces(start_frame=t1, end_frame=t2, channel_ids=channels2)
+        ret = np.zeros((len(channels), t2-t1))
+        t1a = np.maximum(t1, 0)
+        t2a = np.minimum(t2, self.numTimepoints())
+        ret[:, t1a-(t1):t2a-(t1)] = self.getChunk(t1=t1a,
+                                                  t2=t2a, channels=channels)
+        return ret
 
 def set_geom_on_recording(recording: se.RecordingExtractor, geom: np.ndarray):
     channel_ids = recording.get_channel_ids()
@@ -139,5 +132,4 @@ def prepare_timeseries_hdf5_from_recording(recording: se.RecordingExtractor, tim
                          s1] = recording.get_traces(start_frame=s1, end_frame=s2)
 
             for m in range(M):
-                f.create_dataset('part-{}-{}'.format(m, j),
-                                 data=padded_chunk[m, :].ravel())
+                f.create_dataset(f'part-{m}-{j}', data=padded_chunk[m, :].ravel())

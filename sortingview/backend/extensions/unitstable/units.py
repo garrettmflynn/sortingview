@@ -14,11 +14,18 @@ def get_firing_data(sorting_object, recording_object, configuration={}, snippet_
     elapsed = R.get_num_frames()/R.get_sampling_frequency()
     ids = S.get_unit_ids()
     train = [S.get_unit_spike_train(id).size for id in ids]
-    keyedCount = dict(zip(
-        [str(id) for id in ids],
-        [{'count': t,
-          'rate': f"{Decimal(t / elapsed).quantize(Decimal('.01'))}"} for t in train]))
-    return keyedCount
+    return dict(
+        zip(
+            [str(id) for id in ids],
+            [
+                {
+                    'count': t,
+                    'rate': f"{Decimal(t / elapsed).quantize(Decimal('.01'))}",
+                }
+                for t in train
+            ],
+        )
+    )
 
 @kc.taskfunction('get_firing_data.1', type='pure-calculation')
 def task_get_firing_data(sorting_object, recording_object, configuration={}, snippet_len=(50, 80)):

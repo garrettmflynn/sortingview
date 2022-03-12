@@ -29,17 +29,18 @@ def get_sorting_unit_snippets(snippets_h5, unit_id, time_range, max_num_snippets
     #     unit_waveforms_channel_ids = np.array(f.get(f'unit_waveforms/{unit_id}/channel_ids'))
     #     print(unit_waveforms_channel_ids)
     unit_waveforms, unit_waveforms_channel_ids, channel_locations0, sampling_frequency, unit_spike_train = get_unit_waveforms_from_snippets_h5(h5_path, unit_id)
-    
+
     snippets = [
         {
             'index': j,
             'unitId': unit_id,
             'waveform': unit_waveforms[j].astype(np.float32),
-            'timepoint': float(unit_spike_train[j])
+            'timepoint': float(unit_spike_train[j]),
         }
         for j in range(unit_waveforms.shape[0])
-        if time_range['min'] <= unit_spike_train[j] and unit_spike_train[j] < time_range['max']
+        if time_range['min'] <= unit_spike_train[j] < time_range['max']
     ]
+
 
     return dict(
         channel_ids=unit_waveforms_channel_ids.astype(np.int32),

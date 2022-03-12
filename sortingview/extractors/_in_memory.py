@@ -18,7 +18,6 @@ def register_in_memory_object(obj):
 def get_in_memory_object(a: dict):
     object_id = a['object_id']
     process_id = a['process_id']
-    if process_id == unique_process_id:
-        if object_id in in_memory_objects:
-            return in_memory_objects[object_id]
+    if process_id == unique_process_id and object_id in in_memory_objects:
+        return in_memory_objects[object_id]
     return None

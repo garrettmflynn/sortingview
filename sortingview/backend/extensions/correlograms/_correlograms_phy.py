@@ -165,7 +165,4 @@ def compute_correlograms(spike_times, spike_clusters, cluster_ids=None, sample_r
     # Remove ACG peaks. -- exclude because this is wrong (jfm)
     # correlograms[np.arange(n_clusters), np.arange(n_clusters), 0] = 0
 
-    if symmetrize:
-        return _symmetrize_correlograms(correlograms)
-    else:
-        return correlograms
+    return _symmetrize_correlograms(correlograms) if symmetrize else correlograms

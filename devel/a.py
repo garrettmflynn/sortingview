@@ -22,9 +22,7 @@ def main():
     curation_subfeed = f.load_subfeed('main')
     X = SpikeSortingView(data_uri)
     SpikeSortingView.set_sorting_curation_authorized_users(curation_subfeed.uri, ['jmagland@flatironinstitute.org'])
-    test_metric_data = {}
-    for u in X.unit_ids:
-        test_metric_data[str(u)] = u
+    test_metric_data = {str(u): u for u in X.unit_ids}
     unit_metrics = [
         {
             'name': 'test',

@@ -19,7 +19,7 @@ def spikesortingview(self, *, recording_id: str, sorting_id: str, label: str, in
         sorting_curation_uri = self.get_curation_subfeed(sorting_id).uri
     else:
         sorting_curation_uri = None
-    
+
     unit_metrics = self.get_unit_metrics_for_sorting(sorting_id)
 
     f1 = X.create_summary()
@@ -33,5 +33,4 @@ def spikesortingview(self, *, recording_id: str, sorting_id: str, label: str, in
 
     mountain_layout = X.create_mountain_layout(figures=[f1, f2, f3, f4, f5, f6, f7, f8], label=label, sorting_curation_uri=sorting_curation_uri)
 
-    url = mountain_layout.url()
-    return url
+    return mountain_layout.url()

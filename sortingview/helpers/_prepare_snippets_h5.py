@@ -41,8 +41,8 @@ def prepare_snippets_h5(
     )
     X = SpikeSortingView(data_uri)
     with kc.TemporaryDirectory() as tmpdir:
-        save_path = tmpdir + '/snippets.h5'
-        
+        save_path = f'{tmpdir}/snippets.h5'
+
         unit_ids = X.unit_ids
         samplerate = X.sampling_frequency
 
@@ -57,7 +57,7 @@ def prepare_snippets_h5(
             f.create_dataset('channel_ids', data=np.array(recording.get_channel_ids()))
             f.create_dataset('num_frames', data=np.array([recording.get_num_frames()]).astype(np.int32))
             channel_locations = recording.get_channel_locations()
-            f.create_dataset(f'channel_locations', data=np.array(channel_locations))
+            f.create_dataset('channel_locations', data=np.array(channel_locations))
             for ii, unit_id in enumerate(unit_ids):
                 print(f'Unit {ii} of {len(unit_ids)}')
                 x = sorting.get_unit_spike_train(unit_id=unit_id)

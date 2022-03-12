@@ -99,24 +99,24 @@ def pair_cluster_features(snippets_h5, unit_id1, unit_id2, max_num_events=1000):
     import h5py
     h5_path = kc.load_file(snippets_h5)
     assert h5_path is not None
-    
+
     # Get the unit waveforms
     unit_waveforms1, unit_waveforms_channel_ids1, channel_locations1, sampling_frequency1, unit_spike_train1 = get_unit_waveforms_from_snippets_h5(h5_path, unit_id1, max_num_events=max_num_events)
     unit_waveforms2, unit_waveforms_channel_ids2, channel_locations2, sampling_frequency2, unit_spike_train2 = get_unit_waveforms_from_snippets_h5(h5_path, unit_id2, max_num_events=max_num_events)
 
     # Find the channel ids
     channel_ids = [ch for ch in unit_waveforms_channel_ids1 if ch in unit_waveforms_channel_ids2]
-    if len(channel_ids) == 0:
+    if not channel_ids:
         raise Exception('Units do not have any channels in common')
     print(f'Using channel IDs: {channel_ids}')
-    
+
     # Get the indices of the channels
     channel_inds1 = []
     channel_inds2 = []
     for channel_id in channel_ids:
         channel_inds1.append(unit_waveforms_channel_ids1.tolist().index(channel_id))
         channel_inds2.append(unit_waveforms_channel_ids2.tolist().index(channel_id))
-    
+
     # Restrict the unit waveforms to the common channels
     unit_waveforms1 = unit_waveforms1[:, channel_inds1, :] # L1 x M x T
     unit_waveforms2 = unit_waveforms2[:, channel_inds2, :] # L2 x M x T
@@ -138,13 +138,13 @@ def pair_cluster_features(snippets_h5, unit_id1, unit_id2, max_num_events=1000):
     unit_waveforms2b = unit_waveforms2 - avg_waveform2
 
     unit_waveforms_b = np.concatenate((unit_waveforms1b, unit_waveforms2b), axis=0)
-    
+
     assert unit_waveforms_b.shape[0] == L
 
     unit_spike_train = np.concatenate((unit_spike_train1, unit_spike_train2))
 
     labels = np.concatenate((np.ones(unit_spike_train1.shape) * unit_id1, np.ones(unit_spike_train2.shape) * unit_id2))
-    
+
     from sklearn.decomposition import PCA
     nf = 1 # number of features
 

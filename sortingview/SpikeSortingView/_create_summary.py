@@ -31,5 +31,4 @@ def create_summary(self, *, label: Union[str, None]=None):
     return Figure(data=data, label=label)
 
 def estimate_noise_level(traces: np.ndarray):
-    est_noise_level = np.median(np.abs(traces - np.mean(traces, axis=0))) / 0.6745  # median absolute deviation (MAD) estimate of stdev
-    return est_noise_level
+    return np.median(np.abs(traces - np.mean(traces, axis=0))) / 0.6745

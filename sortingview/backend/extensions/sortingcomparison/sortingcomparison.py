@@ -20,10 +20,7 @@ def get_best_matching_units(*, sorting_object, compare_sorting_object, sorting_s
         s = 'A'
     else:
         s = ''
-    ret = {}
-    for id in S.get_unit_ids():
-        ret[str(id)] = f'{C.best_match_12[id]}{s}'
-    return ret
+    return {str(id): f'{C.best_match_12[id]}{s}' for id in S.get_unit_ids()}
     
 
 

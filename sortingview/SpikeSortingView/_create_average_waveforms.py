@@ -25,10 +25,12 @@ def create_average_waveforms(self, *, unit_ids: List[int], label: Union[str, Non
             'waveform': waveform.T,
             'waveformStdDev': waveform_std_dev.T
         })
-    
-    channel_locations = {}
-    for ii, channel_id in enumerate(self.channel_ids):
-        channel_locations[str(channel_id)] = self.channel_locations[ii, :].astype(np.float32)
+
+    channel_locations = {
+        str(channel_id): self.channel_locations[ii, :].astype(np.float32)
+        for ii, channel_id in enumerate(self.channel_ids)
+    }
+
     data = {
         'type': 'AverageWaveforms',
         'averageWaveforms': plots,
@@ -39,5 +41,4 @@ def create_average_waveforms(self, *, unit_ids: List[int], label: Union[str, Non
     return Figure(data=data, label=label)
 
 def estimate_noise_level(traces: np.ndarray):
-    est_noise_level = np.median(np.abs(traces - np.mean(traces, axis=0))) / 0.6745  # median absolute deviation (MAD) estimate of stdev
-    return est_noise_level
+    return np.median(np.abs(traces - np.mean(traces, axis=0))) / 0.6745
