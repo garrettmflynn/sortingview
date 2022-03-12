@@ -13,7 +13,7 @@ class Snippets1RecordingExtractor(se.RecordingExtractor):
         se.RecordingExtractor.__init__(self)
 
         snippets_h5_path = kc.load_file(snippets_h5_uri, p2p=p2p)
-        
+
         self._snippets_h5_path: str = snippets_h5_path
 
         channel_ids_set: Set[int] = set()
@@ -38,7 +38,7 @@ class Snippets1RecordingExtractor(se.RecordingExtractor):
                 print('Unable to load num_frames. Please update snippets file.')
                 self._num_frames: int = max_timepoint + 1
             try:
-                channel_locations = np.array(f.get(f'channel_locations'))
+                channel_locations = np.array(f.get('channel_locations'))
                 self.set_channel_locations(channel_locations)
             except:
                 print('WARNING: using [0, 0] for channel locations. Please adjust snippets file')

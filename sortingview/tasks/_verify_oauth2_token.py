@@ -8,5 +8,4 @@ cached_session = cachecontrol.CacheControl(session)
 request = google.auth.transport.requests.Request(session=cached_session)
 
 def _verify_oauth2_token(token: bytes):
-    id_info = id_token.verify_oauth2_token(token, request)
-    return id_info
+    return id_token.verify_oauth2_token(token, request)

@@ -31,17 +31,16 @@ def _try_mda_create_object(arg: Union[str, dict], samplerate=None) -> Union[None
                 samplerate=samplerate
             )
         )
-    
-    if isinstance(arg, dict):
-        if 'firings' in arg:
-            return dict(
-                sorting_format='mda',
-                data=dict(
-                    firings=arg['firings'],
-                    samplerate=arg.get('samplerate', samplerate if samplerate is not None else None)
-                )
+
+    if isinstance(arg, dict) and 'firings' in arg:
+        return dict(
+            sorting_format='mda',
+            data=dict(
+                firings=arg['firings'],
+                samplerate=arg.get('samplerate', samplerate if samplerate is not None else None)
             )
-    
+        )
+
     return None
 
 def _create_object_for_arg(arg: Union[str, dict], samplerate=None) -> Union[dict, None]:
@@ -131,9 +130,9 @@ class LabboxEphysSortingExtractor(se.SortingExtractor):
             self._sorting = S
         elif sorting_format == 'subsorting':
             parent_sorting = LabboxEphysSortingExtractor(data['sorting'])
-            start_frame = data.get('start_frame', None)
-            end_frame = data.get('end_frame', None)
-            unit_ids = data.get('unit_ids', None)
+            start_frame = data.get('start_frame')
+            end_frame = data.get('end_frame')
+            unit_ids = data.get('unit_ids')
             self._sorting = se.SubSortingExtractor(parent_sorting=parent_sorting, unit_ids=unit_ids, start_frame=start_frame, end_frame=end_frame)
         else:
             raise Exception(f'Unexpected sorting format: {sorting_format}')
@@ -158,7 +157,7 @@ class LabboxEphysSortingExtractor(se.SortingExtractor):
     @staticmethod
     def from_numpy(samplerate: float, times: np.array, labels: np.array):
         with kc.TemporaryDirectory() as tmpdir:
-            h5_path = tmpdir + '/sorting.h5'
+            h5_path = f'{tmpdir}/sorting.h5'
             S = NumpySortingExtractor()
             S.set_sampling_frequency(samplerate)
             S.set_times_labels(times, labels)
@@ -174,7 +173,7 @@ class LabboxEphysSortingExtractor(se.SortingExtractor):
     def from_memory(sorting: se.SortingExtractor, serialize=False):
         if serialize:
             with kc.TemporaryDirectory() as tmpdir:
-                fname = tmpdir + '/' + _random_string(10) + '_firings.mda'
+                fname = f'{tmpdir}/{_random_string(10)}_firings.mda'
                 MdaSortingExtractor.write_sorting(sorting=sorting, save_path=fname)
                 # with ka.config(use_hard_links=True):
                 uri = kc.store_file(fname, basename='firings.mda')
@@ -202,7 +201,7 @@ class LabboxEphysSortingExtractor(se.SortingExtractor):
     @staticmethod
     def store_sorting(sorting: SortingExtractor):
         with kc.TemporaryDirectory() as tmpdir:
-            save_path = tmpdir + '/sorting.h5'
+            save_path = f'{tmpdir}/sorting.h5'
             H5SortingExtractorV1.write_sorting(sorting=sorting, save_path=save_path)
 
             # in case we are in a container, the daemon needs to be able to access this file

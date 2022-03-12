@@ -10,7 +10,7 @@ def parse_workspace_uri(workspace_uri: str):
     if not workspace_uri.startswith('workspace://'):
         raise Exception(f'Invalid workspace uri: {workspace_uri}')
     if '?' not in workspace_uri:
-        workspace_uri = workspace_uri + '?'
+        workspace_uri += '?'
     params = {}
     ind = workspace_uri.index('?')
     feed_id = workspace_uri[:ind].split('/')[2]
@@ -59,12 +59,11 @@ class Workspace:
         p = _query_string_to_dict(self._query_string)
         if label:
             p['label'] = label
-        else:
-            if 'label' in p:
-                del p['label']
+        elif 'label' in p:
+            del p['label']
         self._query_string = _dict_to_query_string(p)
     def add_recording(self, *, label: str, recording: LabboxEphysRecordingExtractor):
-        recording_id = 'R-' + _random_id()
+        recording_id = f'R-{_random_id()}'
         if recording_id in self._recordings:
             raise Exception(f'Duplicate recording ID: {recording_id}')
         x = {
@@ -79,7 +78,7 @@ class Workspace:
         self._recordings[recording_id] = x
         return recording_id
     def add_sorting(self, *, recording_id: str, label: str, sorting: LabboxEphysSortingExtractor):
-        sorting_id = 'S-' + _random_id()
+        sorting_id = f'S-{_random_id()}'
         if recording_id not in self._recordings:
             raise Exception(f'Recording not found: {recording_id}')
         if sorting_id in self._sortings:
@@ -235,23 +234,19 @@ class Workspace:
                                     'REMOVE_UNIT_LABEL']
         valid_unit_based_actions = ['MERGE_UNITS', 'UNMERGE_UNITS']
         valid_unitless_actions = ['CLOSE_CURATION', 'REOPEN_CURATION']
-        valid_labels = ['accept', 'reject', 'noise', 'artifact', 'mua']
         missing_label = False
         # Flag for action's dependence on unitId existence
         unitId_req = None
         if action_type in valid_labeling_actions:
             unitId_req = True
             unitIds_req = False
-            # Check for valid label in action message
-            if 'label' in action:
-                if action['label'] is not None:
-                    label = action['label']
-                    if label in valid_labels:
-                        pass
-                    else:
-                        raise ValueError(f'Invalid label: {label}')
-            else:
+            if 'label' not in action:
                 raise RuntimeError(f'No label provided; Action type: {action_type} requires a label')
+            if action['label'] is not None:
+                label = action['label']
+                valid_labels = ['accept', 'reject', 'noise', 'artifact', 'mua']
+                if label not in valid_labels:
+                    raise ValueError(f'Invalid label: {label}')
         elif action_type in valid_unit_based_actions:
             unitId_req = False
             unitIds_req = True
@@ -268,16 +263,17 @@ class Workspace:
         if unitId_req == True:
             unit_ids = action['unitId']
             if not isinstance(unit_ids, list):
-                if not isinstance(unit_ids, int):
-                    raise ValueError(f'Invalid unitId: {unit_ids}, type: {type(unit_ids)}')
-                else:
+                if isinstance(unit_ids, int):
                     unit_ids = [unit_ids]
-            if isinstance(unit_ids, list):
-                if any(not isinstance(unit_id, int) for unit_id in unit_ids):
-                    raise ValueError(f'Invalid unitIds: {unit_ids}, type not int')
-            # Check if unitId is valid for the sorting
-            invalid_unit_list = [unit for unit in unit_ids if unit not in valid_unit_ids]
-            if invalid_unit_list:
+                else:
+                    raise ValueError(f'Invalid unitId: {unit_ids}, type: {type(unit_ids)}')
+            if isinstance(unit_ids, list) and any(
+                not isinstance(unit_id, int) for unit_id in unit_ids
+            ):
+                raise ValueError(f'Invalid unitIds: {unit_ids}, type not int')
+            if invalid_unit_list := [
+                unit for unit in unit_ids if unit not in valid_unit_ids
+            ]:
                 raise ValueError(f'unitId(s): {invalid_unit_list} are not valid unitIds for this sorting')
             # Check if label has already been added to all units
             if action_type == 'ADD_UNIT_LABEL':
@@ -289,27 +285,21 @@ class Workspace:
                         break
                     elif unit not in sc['labelsByUnit']:
                         missing_label = True
-                        break          
-        else:
-            # Check if unitId was passed improperly
-            if 'unitId' in action:
-                if action['unitId'] is not None:
-                    raise ValueError(f'unitId is invalid argument for action type: {action_type}')
+                        break
+        elif 'unitId' in action and action['unitId'] is not None:
+            raise ValueError(f'unitId is invalid argument for action type: {action_type}')
         if unitIds_req == True:
             unit_ids = action['unitIds']
             if not isinstance(unit_ids, list):
                 raise ValueError(f'Invalid unitIds: {unit_ids}, type: {type(unit_ids)}, action type: {action_type} expects list')
-            # Check if unitId is valid for the sorting
-            invalid_unit_list = [unit for unit in unit_ids if unit not in valid_unit_ids]
-            if invalid_unit_list:
+            if invalid_unit_list := [
+                unit for unit in unit_ids if unit not in valid_unit_ids
+            ]:
                 raise ValueError(f'unitIds: {invalid_unit_list} are not valid unitIds for this sorting')
             if any(not isinstance(unit_id, int) for unit_id in unit_ids):
                 raise ValueError(f'Invalid unitIds: {unit_ids}, type not int')
-        else:
-            # Check if unitId was passed improperly
-            if 'unitIds' in action:
-                if action['unitIds'] is not None:
-                    raise ValueError(f'unitIds is invalid argument for action type: {action_type}')
+        elif 'unitIds' in action and action['unitIds'] is not None:
+            raise ValueError(f'unitIds is invalid argument for action type: {action_type}')
         if (missing_label == True) or (action_type != 'ADD_UNIT_LABEL'):
             # Load the feed for the curation
             sf = self.get_curation_subfeed(sorting_id)
@@ -343,8 +333,7 @@ def _get_messages_from_subfeed(subfeed: kc.Subfeed):
         msgs = subfeed.get_next_messages(wait_msec=0)
         if msgs is None: break
         if len(msgs) == 0: break
-        for msg in msgs:
-            messages.append(msg)
+        messages.extend(iter(msgs))
     return messages
 
 def _get_recordings_from_subfeed_messages(messages: List[Any]):
@@ -390,8 +379,7 @@ def _get_snippet_len_from_subfeed_messages(messages: List[Any]):
         if 'action' in msg:
             a = msg['action']
             if a.get('type', '') == 'SET_SNIPPET_LEN':
-                x = a.get('snippetLen', None)
-                if x:
+                if x := a.get('snippetLen', None):
                     snippet_len = x
     return snippet_len
 
@@ -417,13 +405,10 @@ def _get_sortings_from_subfeed_messages(messages: List[Any]):
                 for sid in a.get('sortingIds', []):
                     if sid in le_sortings:
                         del le_sortings[sid]
-            elif msg_type == 'DELETE_SORTINGS_FOR_RECORDINGS':
-                for rid in a.get('recordingIds', []):
-                    sids = list(le_sortings.keys())
-                    for sid in sids:
-                        if le_sortings[sid]['recordingId'] == rid:
-                            del le_sortings[sid]
-            elif msg_type == 'DELETE_RECORDINGS':
+            elif msg_type in [
+                'DELETE_SORTINGS_FOR_RECORDINGS',
+                'DELETE_RECORDINGS',
+            ]:
                 for rid in a.get('recordingIds', []):
                     sids = list(le_sortings.keys())
                     for sid in sids:
@@ -452,7 +437,7 @@ def _mg_union(g1: List[int], g2: List[int]):
     return sorted(list(set(g1 + g2)))
 
 def _simplify_merge_groups(merge_groups: List[List[int]]):
-    new_merge_groups: List[List[int]] = [[x for x in g] for g in merge_groups] # make a copy
+    new_merge_groups: List[List[int]] = [list(g) for g in merge_groups]
     something_changed = True
     while something_changed:
         something_changed = False
@@ -567,11 +552,11 @@ def _delete_recording(*, feed: kc.Feed, recording_id: str):
         }
     })
     le_sortings = _get_sortings_from_subfeed_messages(messages)
-    sorting_ids_to_delete = []
-    for k, v in le_sortings.items():
-        if v.get('recordingId') == recording_id:
-            sorting_ids_to_delete.append(v.get('sortingId'))
-    if len(sorting_ids_to_delete) > 0:
+    if sorting_ids_to_delete := [
+        v.get('sortingId')
+        for k, v in le_sortings.items()
+        if v.get('recordingId') == recording_id
+    ]:
         subfeed.append_message({
             'action': {
                 'type': 'DELETE_SORTINGS',
@@ -591,8 +576,8 @@ def _dict_to_query_string(x: Dict[str, str]):
     ret = ''
     for k, v in x.items():
         if ret != '':
-            ret = ret + '&'
-        ret = ret + f'{k}={v}'
+            ret = f'{ret}&'
+        ret = f'{ret}{k}={v}'
     return ret
 
 

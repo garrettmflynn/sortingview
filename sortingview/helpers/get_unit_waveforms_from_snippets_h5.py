@@ -52,7 +52,7 @@ def get_unit_waveforms_from_snippets_h5(snippets_h5_path: str, unit_id: Union[in
         return _get_unit_waveforms_from_list_from_snippets_h5(snippets_h5_path, unit_id, max_num_events=max_num_events)
     with h5py.File(snippets_h5_path, 'r') as f:
         channel_ids = np.array(f.get('channel_ids'))
-        channel_locations = np.array(f.get(f'channel_locations'))
+        channel_locations = np.array(f.get('channel_locations'))
         unit_spike_train = np.array(f.get(f'unit_spike_trains/{unit_id}'))
         sampling_frequency = np.array(f.get('sampling_frequency'))[0].item()
         if np.isnan(sampling_frequency):
@@ -61,15 +61,17 @@ def get_unit_waveforms_from_snippets_h5(snippets_h5_path: str, unit_id: Union[in
         unit_waveforms = np.array(f.get(f'unit_waveforms/{unit_id}/waveforms'))
         unit_waveforms_channel_ids = np.array(f.get(f'unit_waveforms/{unit_id}/channel_ids'))
 
-        if max_num_events is not None:
-            if len(unit_spike_train) > max_num_events:
-                inds = subsample_inds(len(unit_spike_train), max_num_events)
-                unit_spike_train = unit_spike_train[inds]
-                unit_waveforms = unit_waveforms[inds]
+        if (
+            max_num_events is not None
+            and len(unit_spike_train) > max_num_events
+        ):
+            inds = subsample_inds(len(unit_spike_train), max_num_events)
+            unit_spike_train = unit_spike_train[inds]
+            unit_waveforms = unit_waveforms[inds]
 
     channel_locations0 = []
     for ch_id in unit_waveforms_channel_ids:
         ind = np.where(channel_ids == ch_id)[0]
         channel_locations0.append(channel_locations[ind, :].ravel().tolist())
-    
+
     return unit_waveforms, unit_waveforms_channel_ids, np.array(channel_locations0), sampling_frequency, unit_spike_train

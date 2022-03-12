@@ -13,13 +13,12 @@ import kachery_client as kc
 @serialize_wrapper
 def spikesortingview_fetch_position_pdf_segment(*, pdf_object: dict, segment_number: int, downsample_factor: int):
     format0 = pdf_object['format']
-    if format0 == 'position_pdf_h5_v1':
-        uri = pdf_object['uri']
-        fname = kc.load_file(uri)
-        with h5py.File(fname, 'r') as f:
-            return np.array(f.get(f'segment/{downsample_factor}/{segment_number}'))
-    else:
+    if format0 != 'position_pdf_h5_v1':
         raise Exception(f'Unexpected format: {format0}')
+    uri = pdf_object['uri']
+    fname = kc.load_file(uri)
+    with h5py.File(fname, 'r') as f:
+        return np.array(f.get(f'segment/{downsample_factor}/{segment_number}'))
 
 @kc.taskfunction('spikesortingview.fetch_position_pdf_segment.1', type='pure-calculation')
 def task_fetch_position_pdf_segment(*, pdf_object: dict, segment_number: int, downsample_factor: int):

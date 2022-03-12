@@ -16,8 +16,7 @@ def _compute_peak_channel_index_from_average_waveform(average_waveform):
     channel_maxes = np.max(average_waveform, axis=1)
     channel_mins = np.min(average_waveform, axis=1)
     channel_amplitudes = channel_maxes - channel_mins
-    peak_channel_index = np.argmax(channel_amplitudes)
-    return peak_channel_index
+    return np.argmax(channel_amplitudes)
 
 @hi.function(
     'fetch_spike_amplitudes', '0.1.6',

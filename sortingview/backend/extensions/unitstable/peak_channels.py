@@ -27,8 +27,7 @@ def get_peak_channels(snippets_h5):
 def _compute_peak_channel_index_from_waveforms(waveforms):
     average_waveform = np.mean(waveforms, axis=0)
     channel_amplitudes = (np.max(average_waveform, axis=1) - np.min(average_waveform, axis=1)).squeeze() # M
-    peak_channel_index = np.argmax(channel_amplitudes)
-    return peak_channel_index
+    return np.argmax(channel_amplitudes)
 
 @kc.taskfunction('get_peak_channels.1', type='pure-calculation')
 def task_get_peak_channels(sorting_object, recording_object, configuration={}, snippet_len=(50, 80)):

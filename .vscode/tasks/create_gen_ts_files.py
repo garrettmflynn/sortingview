@@ -9,16 +9,20 @@ from typing import List
 def create_gen_ts_files(folder: str) -> None:
     ret: List[str] = []
     for a in os.listdir(folder):
-        fname = folder + '/' + a
-        fname2 = fname + '.gen.ts'
+        fname = f'{folder}/{a}'
+        fname2 = f'{fname}.gen.ts'
         if os.path.exists(fname2):
             with open(fname, 'r') as f:
                 txt = f.read()
             new_txt = f'const text: string = {json.dumps(txt)}\n\nexport default text'
             _write_file_if_changed(fname2, new_txt)
-        if os.path.isdir(fname):
-            if a not in ['node_modules', '.git', '.vscode', '__pycache__']:
-                create_gen_ts_files(folder + '/' + a)
+        if os.path.isdir(fname) and a not in [
+            'node_modules',
+            '.git',
+            '.vscode',
+            '__pycache__',
+        ]:
+            create_gen_ts_files(f'{folder}/{a}')
 
 def _write_file_if_changed(fname, txt):
     if os.path.exists(fname):

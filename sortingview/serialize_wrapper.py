@@ -15,11 +15,13 @@ def _serialize(x, *, compress_npy=False):
     elif isinstance(x, np.floating):
         return float(x)
     elif type(x) == dict:
-        ret = dict()
-        for key, val in x.items():
-            ret[key] = _serialize(val, compress_npy=compress_npy)
+        ret = {
+            key: _serialize(val, compress_npy=compress_npy)
+            for key, val in x.items()
+        }
+
         return ret
-    elif (type(x) == list) or (type(x) == tuple):
+    elif type(x) in [list, tuple]:
         return [_serialize(val, compress_npy=compress_npy) for val in x]
     elif isinstance(x, np.ndarray):
         # todo: worry about byte order and data type here
@@ -56,11 +58,8 @@ def _deserialize(x):
             x = np.reshape(np.frombuffer(data, dtype=dtype), shape)
             return x
         else:
-            ret = dict()
-            for key, val in x.items():
-                ret[key] = _deserialize(val)
-            return ret
-    elif (type(x) == list) or (type(x) == tuple):
+            return {key: _deserialize(val) for key, val in x.items()}
+    elif type(x) in [list, tuple]:
         return [_deserialize(val) for val in x]
     else:
         return x

@@ -27,11 +27,11 @@ class MdaHeader:
         _write_int32(f, H.num_bytes_per_entry)
         if H.uses64bitdims:
             _write_int32(f, -H.num_dims)
-            for j in range(0, H.num_dims):
+            for j in range(H.num_dims):
                 _write_int64(f, H.dims[j])
         else:
             _write_int32(f, H.num_dims)
-            for j in range(0, H.num_dims):
+            for j in range(H.num_dims):
                 _write_int32(f, H.dims[j])
 
 
@@ -98,13 +98,13 @@ class DiskReadMda:
                 A = np.load(self._path, mmap_mode='r')
                 return A[:, :, i1:i1 + N1]
             return self._read_chunk_1d(i1, N1)
-        elif (i3 < 0):
+        elif i3 < 0:
             if N1 != self.N1():
-                print("Unable to support N1 {} != {}".format(N1, self.N1()))
+                print(f"Unable to support N1 {N1} != {self.N1()}")
                 return None
             X = self._read_chunk_1d(i1 + N1 * i2, N1 * N2)
             if X is None:
-                print('Problem reading chunk from file: ' + self._path)
+                print(f'Problem reading chunk from file: {self._path}')
                 return None
             if self._npy_mode:
                 A = np.load(self._path, mmap_mode='r')
@@ -112,10 +112,10 @@ class DiskReadMda:
             return np.reshape(X, (N1, N2), order='F')
         else:
             if N1 != self.N1():
-                print("Unable to support N1 {} != {}".format(N1, self.N1()))
+                print(f"Unable to support N1 {N1} != {self.N1()}")
                 return None
             if N2 != self.N2():
-                print("Unable to support N2 {} != {}".format(N2, self.N2()))
+                print(f"Unable to support N2 {N2} != {self.N2()}")
                 return None
             if self._npy_mode:
                 A = np.load(self._path, mmap_mode='r')
@@ -157,7 +157,7 @@ def _read_header(path, verbose=True):
     except:
         raise Exception(f'Unable to load header of file: {path}')
     if bytes0 is None:
-        raise Exception('Unable to load header bytes from {}'.format(path))
+        raise Exception(f'Unable to load header bytes from {path}')
     f = io.BytesIO(bytes0)
     try:
         dt_code = _read_int32(f)
@@ -169,25 +169,19 @@ def _read_header(path, verbose=True):
             num_dims = -num_dims
         if (num_dims < 1) or (num_dims > 6):  # allow single dimension as of 12/6/17
             if verbose:
-                print("Invalid number of dimensions: {}".format(num_dims))
+                print(f"Invalid number of dimensions: {num_dims}")
             f.close()
             return None
         dims = []
         dimprod = 1
-        if uses64bitdims:
-            for _ in range(0, num_dims):
-                tmp0 = _read_int64(f)
-                dimprod = dimprod * tmp0
-                dims.append(tmp0)
-        else:
-            for _ in range(0, num_dims):
-                tmp0 = _read_int32(f)
-                dimprod = dimprod * tmp0
-                dims.append(tmp0)
+        for _ in range(num_dims):
+            tmp0 = _read_int64(f) if uses64bitdims else _read_int32(f)
+            dimprod = dimprod * tmp0
+            dims.append(tmp0)
         dt = _dt_from_dt_code(dt_code)
         if dt is None:
             if verbose:
-                print("Invalid data type code: {}".format(dt_code))
+                print(f"Invalid data type code: {dt_code}")
             f.close()
             return None
         H = MdaHeader(dt, dims)
@@ -205,22 +199,21 @@ def _read_header(path, verbose=True):
 
 def _dt_from_dt_code(dt_code):
     if dt_code == -2:
-        dt = 'uint8'
+        return 'uint8'
     elif dt_code == -3:
-        dt = 'float32'
+        return 'float32'
     elif dt_code == -4:
-        dt = 'int16'
+        return 'int16'
     elif dt_code == -5:
-        dt = 'int32'
+        return 'int32'
     elif dt_code == -6:
-        dt = 'uint16'
+        return 'uint16'
     elif dt_code == -7:
-        dt = 'float64'
+        return 'float64'
     elif dt_code == -8:
-        dt = 'uint32'
+        return 'uint32'
     else:
-        dt = None
-    return dt
+        return None
 
 
 def _dt_code_from_dt(dt):
@@ -266,10 +259,7 @@ def readmda_header(path, *, verbose=True):
 
 
 def _write_header(path, H, rewrite=False):
-    if rewrite:
-        f = open(path, "r+b")
-    else:
-        f = open(path, "wb")
+    f = open(path, "r+b") if rewrite else open(path, "wb")
     try:
         H.write(f)
         f.close()
@@ -286,7 +276,7 @@ def readmda(path):
     path = kc.load_file(path)
     H = _read_header(path)
     if (H is None):
-        print("Problem reading header of: {}".format(path))
+        print(f"Problem reading header of: {path}")
         return None
     ret = np.array([])
     f = open(path, "rb")
@@ -354,13 +344,10 @@ def _writemda(X, fname, dt):
     # num_bytes_per_entry=get_num_bytes_per_entry_from_dt(dt)
     dt_code = _dt_code_from_dt(dt)
     if dt_code is None:
-        print("Unexpected data type: {}".format(dt))
+        print(f"Unexpected data type: {dt}")
         return False
 
-    if type(fname) == str:
-        f = open(fname, 'wb')
-    else:
-        f = fname
+    f = open(fname, 'wb') if type(fname) == str else fname
     try:
         H = MdaHeader(dt0=dt, dims0=X.shape)
         H.write(f)
@@ -437,7 +424,7 @@ def appendmda(X, path):
         raise Exception('appendmda not yet implemented for .npy files')
     H = _read_header(path)
     if (H is None):
-        print("Problem reading header of: {}".format(path))
+        print(f"Problem reading header of: {path}")
         return None
     if (len(H.dims) != len(X.shape)):
         print("Incompatible number of dimensions in appendmda", H.dims, X.shape)
@@ -451,11 +438,10 @@ def appendmda(X, path):
     H.dims[num_dims - 1] = H.dims[num_dims - 1] + X.shape[num_dims - 1]
     try:
         _write_header(path, H, rewrite=True)
-        f = open(path, "r+b")
-        f.seek(H.header_size + H.num_bytes_per_entry * num_entries_old)
-        A = np.reshape(X, X.size, order='F').astype(H.dt)
-        A.tofile(f)
-        f.close()
+        with open(path, "r+b") as f:
+            f.seek(H.header_size + H.num_bytes_per_entry * num_entries_old)
+            A = np.reshape(X, X.size, order='F').astype(H.dt)
+            A.tofile(f)
     except Exception as e:  # catch *all* exceptions
         print(e)
         f.close()
@@ -463,11 +449,10 @@ def appendmda(X, path):
 
 
 def file_extension(fname):
-    if type(fname) == str:
-        _, ext = os.path.splitext(fname)
-        return ext
-    else:
+    if type(fname) != str:
         return None
+    _, ext = os.path.splitext(fname)
+    return ext
 
 
 def _read_int32(f):
@@ -496,23 +481,17 @@ def _header_from_file(f):
             uses64bitdims = True
             num_dims = -num_dims
         if (num_dims < 1) or (num_dims > 6):  # allow single dimension as of 12/6/17
-            print("Invalid number of dimensions: {}".format(num_dims))
+            print(f"Invalid number of dimensions: {num_dims}")
             return None
         dims = []
         dimprod = 1
-        if uses64bitdims:
-            for _ in range(0, num_dims):
-                tmp0 = _read_int64(f)
-                dimprod = dimprod * tmp0
-                dims.append(tmp0)
-        else:
-            for _ in range(0, num_dims):
-                tmp0 = _read_int32(f)
-                dimprod = dimprod * tmp0
-                dims.append(tmp0)
+        for _ in range(num_dims):
+            tmp0 = _read_int64(f) if uses64bitdims else _read_int32(f)
+            dimprod = dimprod * tmp0
+            dims.append(tmp0)
         dt = _dt_from_dt_code(dt_code)
         if dt is None:
-            print("Invalid data type code: {}".format(dt_code))
+            print(f"Invalid data type code: {dt_code}")
             return None
         H = MdaHeader(dt, dims)
         if (uses64bitdims):
@@ -528,8 +507,8 @@ def mdaio_test():
     M = 4
     N = 12
     X = np.ndarray((M, N))
-    for n in range(0, N):
-        for m in range(0, M):
+    for n in range(N):
+        for m in range(M):
             X[m, n] = n * 10 + m
     writemda32(X, 'tmp1.mda')
     Y = readmda('tmp1.mda')

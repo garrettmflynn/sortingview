@@ -25,22 +25,16 @@ def _listify_ndarray(x: np.ndarray) -> list:
         else:
             return [float(val) for val in x]
     elif x.ndim == 2:
-        ret = []
-        for j in range(x.shape[1]):
-            ret.append(_listify_ndarray(x[:, j]))
+        ret = [_listify_ndarray(x[:, j]) for j in range(x.shape[1])]
         return ret
     elif x.ndim == 3:
-        ret = []
-        for j in range(x.shape[2]):
-            ret.append(_listify_ndarray(x[:, :, j]))
+        ret = [_listify_ndarray(x[:, :, j]) for j in range(x.shape[2])]
         return ret
     elif x.ndim == 4:
-        ret = []
-        for j in range(x.shape[3]):
-            ret.append(_listify_ndarray(x[:, :, :, j]))
+        ret = [_listify_ndarray(x[:, :, :, j]) for j in range(x.shape[3])]
         return ret
     else:
-        raise Exception('Cannot listify ndarray with {} dims.'.format(x.ndim))
+        raise Exception(f'Cannot listify ndarray with {x.ndim} dims.')
 
 def _try_mda_create_object(arg: Union[str, dict]) -> Union[None, dict]:
     if isinstance(arg, str):
@@ -66,18 +60,24 @@ def _try_mda_create_object(arg: Union[str, dict]) -> Union[None, dict]:
             #                 params=params
             #             )
             #         )
-    
-    if isinstance(arg, dict):
-        if ('raw' in arg) and ('geom' in arg) and ('params' in arg) and (type(arg['geom']) == list) and (type(arg['params']) == dict):
-            return dict(
-                recording_format='mda',
-                data=dict(
-                    raw=arg['raw'],
-                    geom=arg['geom'],
-                    params=arg['params']
-                )
+
+    if (
+        isinstance(arg, dict)
+        and ('raw' in arg)
+        and ('geom' in arg)
+        and ('params' in arg)
+        and (type(arg['geom']) == list)
+        and (type(arg['params']) == dict)
+    ):
+        return dict(
+            recording_format='mda',
+            data=dict(
+                raw=arg['raw'],
+                geom=arg['geom'],
+                params=arg['params']
             )
-    
+        )
+
     return None
 
 def _try_nrs_create_object(arg: Union[str, dict]) -> Union[None, dict]:
@@ -113,19 +113,24 @@ def _try_nrs_create_object(arg: Union[str, dict]) -> Union[None, dict]:
             #             recording_format='nrs',
             #             data=data
             #         )
-    
-    if isinstance(arg, dict):
-        if ('probe_file' in arg) and ('xml_file' in arg) and ('nrs_file' in arg) and ('dat_file' in arg):
-            return dict(
-                recording_format='nrs',
-                data=dict(
-                    probe_file=arg['probe_file'],
-                    xml_file=arg['xml_file'],
-                    nrs_file=arg['nrs_file'],
-                    dat_file=arg['dat_file']
-                )
+
+    if (
+        isinstance(arg, dict)
+        and ('probe_file' in arg)
+        and ('xml_file' in arg)
+        and ('nrs_file' in arg)
+        and ('dat_file' in arg)
+    ):
+        return dict(
+            recording_format='nrs',
+            data=dict(
+                probe_file=arg['probe_file'],
+                xml_file=arg['xml_file'],
+                nrs_file=arg['nrs_file'],
+                dat_file=arg['dat_file']
             )
-    
+        )
+
     return None
 
 
@@ -320,7 +325,7 @@ class LabboxEphysRecordingExtractor(se.RecordingExtractor):
             if serialize_dtype is None:
                 raise Exception('You must specify the serialize_dtype when serializing recording extractor in from_memory()')
             with kc.TemporaryDirectory() as tmpdir:
-                fname = tmpdir + '/' + _random_string(10) + '_recording.dat'
+                fname = f'{tmpdir}/{_random_string(10)}_recording.dat'
                 # se.BinDatRecordingExtractor.write_recording(recording=recording, save_path=fname, time_axis=0, dtype=serialize_dtype)
                 # with ka.config(use_hard_links=True):
                 recording.get_traces().T.astype(serialize_dtype).tofile(fname)
@@ -358,28 +363,29 @@ class LabboxEphysRecordingExtractor(se.RecordingExtractor):
     
     @staticmethod
     def store_recording_h5(recording: se.RecordingExtractor, format='h5_v1', dtype=float):
-        if isinstance(recording, LabboxEphysRecordingExtractor):
-            if recording.object()['recording_format'] == format:
-                # already in this format
-                print(f'Already has format: {format}')
-                return recording
-        if format == 'h5_v1':    
-            with kc.TemporaryDirectory() as tmpdir:
-                fname = tmpdir + '/recording.h5'
-                print('Creating efficient recording: writing as h5...')
-                H5RecordingExtractorV1.write_recording(recording=recording, h5_path=fname, dtype=dtype)
-                print('Creating efficient recording: storing in kachery...')
-                h5_uri = kc.store_file(fname)
-                object = {
-                    'recording_format': 'h5_v1',
-                    'data': {
-                        'h5_uri': h5_uri
-                    }
-                }
-                print('Done creating efficient recording.')
-                return LabboxEphysRecordingExtractor(object)
-        else:
+        if (
+            isinstance(recording, LabboxEphysRecordingExtractor)
+            and recording.object()['recording_format'] == format
+        ):
+            # already in this format
+            print(f'Already has format: {format}')
+            return recording
+        if format != 'h5_v1':
             raise Exception(f'Unsupported format for create_efficient_recording: {format}')
+        with kc.TemporaryDirectory() as tmpdir:
+            fname = f'{tmpdir}/recording.h5'
+            print('Creating efficient recording: writing as h5...')
+            H5RecordingExtractorV1.write_recording(recording=recording, h5_path=fname, dtype=dtype)
+            print('Creating efficient recording: storing in kachery...')
+            h5_uri = kc.store_file(fname)
+            object = {
+                'recording_format': 'h5_v1',
+                'data': {
+                    'h5_uri': h5_uri
+                }
+            }
+            print('Done creating efficient recording.')
+            return LabboxEphysRecordingExtractor(object)
     
     @staticmethod
     def store_recording_link_h5(recording: se.RecordingExtractor, save_path:str, dtype=float):
@@ -419,16 +425,16 @@ def _apply_filters(*, recording: se.RecordingExtractor, filters: list) -> se.Rec
     return ret
 
 def _apply_filter(*, recording: se.RecordingExtractor, filter: dict) -> se.RecordingExtractor:
-    if filter['type'] == 'bandpass_filter':
-        args = dict()
-        if 'freq_min' in filter:
-            args['freq_min'] = filter['freq_min']
-        if 'freq_max' in filter:
-            args['freq_max'] = filter['freq_max']
-        if 'freq_wid' in filter:
-            args['freq_wid'] = filter['freq_wid']
-        return bandpass_filter(recording, **args)
-    return None
+    if filter['type'] != 'bandpass_filter':
+        return None
+    args = {}
+    if 'freq_min' in filter:
+        args['freq_min'] = filter['freq_min']
+    if 'freq_max' in filter:
+        args['freq_max'] = filter['freq_max']
+    if 'freq_wid' in filter:
+        args['freq_wid'] = filter['freq_wid']
+    return bandpass_filter(recording, **args)
 
 class NrsRecordingExtractor(se.RecordingExtractor):
     extractor_name = 'NrsRecordingExtractor'
@@ -499,46 +505,38 @@ class NrsRecordingExtractor(se.RecordingExtractor):
 
 def _all_files_are_local_in_item(x):
     if type(x) == str:
-        if x.startswith('sha1://') or x.startswith('sha1dir://'):
-            if kc.load_file(x):
-                return False
-        return True
+        if (
+            x.startswith('sha1://') or x.startswith('sha1dir://')
+        ) and kc.load_file(x):
+            return False
     elif type(x) == dict:
         for _, val in x.items():
             if not _all_files_are_local_in_item(val):
                 return False
-        return True
     elif type(x) == list:
         for y in x:
             if not _all_files_are_local_in_item(y):
                 return False
-        return True
     elif type(x) == tuple:
         for y in x:
             if not _all_files_are_local_in_item(y):
                 return False
-        return True
-    else:
-        return True
+    return True
 
 def _download_files_in_item(x):
     if type(x) == str:
-        if x.startswith('sha1://') or x.startswith('sha1dir://'):
-            if kc.load_file(x) is None:
-                a = kc.load_file(x)
-                assert a is not None, f'Unable to download file: {x}'
-        return
+        if (
+            x.startswith('sha1://') or x.startswith('sha1dir://')
+        ) and kc.load_file(x) is None:
+            a = kc.load_file(x)
+            assert a is not None, f'Unable to download file: {x}'
     elif type(x) == dict:
         for _, val in x.items():
             _download_files_in_item(val)
-        return
     elif type(x) == list:
         for y in x:
             _download_files_in_item(y)
-        return
     elif type(x) == tuple:
         for y in x:
             _download_files_in_item(y)
-        return
-    else:
-        return
+    return

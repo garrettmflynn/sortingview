@@ -8,7 +8,7 @@ def _extract_snippet_from_traces(
     end_frame,
     channel_indices
 ):
-    if (0 <= start_frame) and (end_frame <= traces.shape[1]):
+    if start_frame >= 0 and end_frame <= traces.shape[1]:
         x = traces[:, start_frame:end_frame]
     else:
         # handle edge cases
@@ -105,7 +105,7 @@ def get_unit_waveforms(
         chunk_size=chunk_size,
         padding_size=padding_size
     )
-    all_unit_waveforms = [[] for ii in range(len(unit_ids))]
+    all_unit_waveforms = [[] for _ in range(len(unit_ids))]
     for ii, chunk in enumerate(chunks):
         # chunk: {istart, iend, istart_with_padding, iend_with_padding} # include padding
         print(f'Processing chunk {ii + 1} of {len(chunks)}; chunk-range: {chunk["istart_with_padding"]} {chunk["iend_with_padding"]}; num-frames: {num_frames}')
@@ -132,7 +132,7 @@ def get_unit_waveforms(
         )
         for i_unit, x in enumerate(unit_waveforms):
             all_unit_waveforms[i_unit].append(x)
-    
+
     # concatenate the results over the chunks
     unit_waveforms = [
         # tot_num_events_for_unit x num_channels_in_nbhd[unit_id] x len_of_one_snippet

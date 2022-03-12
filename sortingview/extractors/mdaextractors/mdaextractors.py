@@ -14,21 +14,21 @@ class MdaRecordingExtractor(RecordingExtractor):
         RecordingExtractor.__init__(self)
         if recording_directory:
             if timeseries_path is None:
-                timeseries_path = recording_directory + '/raw.mda'
-            geom_path = recording_directory + '/geom.csv'
-            params_path = recording_directory + '/params.json'
+                timeseries_path = f'{recording_directory}/raw.mda'
+            geom_path = f'{recording_directory}/geom.csv'
+            params_path = f'{recording_directory}/params.json'
         self._timeseries_path = timeseries_path
         if params_path:
             self._dataset_params = kc.load_json(params_path)
             if not self._dataset_params:
-                raise Exception('Unable to load recording params: {}'.format(params_path))
+                raise Exception(f'Unable to load recording params: {params_path}')
             self._samplerate = self._dataset_params['samplerate']
         else:
             self._dataset_params = dict(
                 samplerate=samplerate
             )
             self._samplerate = samplerate
-        
+
         if download:
             assert self._timeseries_path is not None
             path0 = kc.load_file(self._timeseries_path)
@@ -36,17 +36,15 @@ class MdaRecordingExtractor(RecordingExtractor):
                 raise Exception('Unable to download file: ' + self._timeseries_path)
         else:
             path0 = self._timeseries_path
-        if geom_path is not None:
-            if not kc.load_file(geom_path):
-                raise Exception('Unable to download file: ' + geom_path)
-        if params_path is not None:
-            if not kc.load_file(params_path):
-                raise Exception('Unable to download file: ' + params_path)
+        if geom_path is not None and not kc.load_file(geom_path):
+            raise Exception(f'Unable to download file: {geom_path}')
+        if params_path is not None and not kc.load_file(params_path):
+            raise Exception(f'Unable to download file: {params_path}')
         self._timeseries_path = path0
 
         self._timeseries = DiskReadMda(self._timeseries_path)
         if self._timeseries is None:
-            raise Exception('Unable to load timeseries: {}'.format(self._timeseries_path))
+            raise Exception(f'Unable to load timeseries: {self._timeseries_path}')
         X = self._timeseries
         if geom is not None:
             self._geom = geom
@@ -55,13 +53,16 @@ class MdaRecordingExtractor(RecordingExtractor):
             self._geom = np.genfromtxt(geom_path2, delimiter=',')
         else:
             self._geom = np.zeros((X.N1(), 2))
-        
+
         if self._geom.shape[0] != X.N1():
             # raise Exception(
             #    'Incompatible dimensions between geom.csv and timeseries file {} <> {}'.format(self._geom.shape[0], X.N1()))
-            print('WARNING: Incompatible dimensions between geom.csv and timeseries file {} <> {}'.format(self._geom.shape[0], X.N1()))
+            print(
+                f'WARNING: Incompatible dimensions between geom.csv and timeseries file {self._geom.shape[0]} <> {X.N1()}'
+            )
+
             self._geom = np.zeros((X.N1(), 2))
-        
+
         # if self._timeseries_path.startswith('sha1://') or self._timeseries_path.startswith('sha1dir://'):
         #     timeseries_hash_path = self._timeseries_path
         # else:
@@ -121,13 +122,13 @@ class MdaRecordingExtractor(RecordingExtractor):
         if not os.path.isdir(save_path):
             os.mkdir(save_path)
         if _preserve_dtype:
-            writemda(raw, save_path + '/' + raw_fname, dtype=raw.dtype)
+            writemda(raw, f'{save_path}/{raw_fname}', dtype=raw.dtype)
         else:
-            writemda32(raw, save_path + '/' + raw_fname)
+            writemda32(raw, f'{save_path}/{raw_fname}')
         params["samplerate"] = recording.get_sampling_frequency()
-        with open(save_path + '/' + params_fname, 'w') as f:
+        with open(f'{save_path}/{params_fname}', 'w') as f:
             json.dump(params, f)
-        np.savetxt(save_path + '/geom.csv', geom, delimiter=',')
+        np.savetxt(f'{save_path}/geom.csv', geom, delimiter=',')
 
 
 class MdaSortingExtractor(SortingExtractor):
@@ -135,7 +136,7 @@ class MdaSortingExtractor(SortingExtractor):
         SortingExtractor.__init__(self)
         self._firings_path = kc.load_file(firings_file)
         if not self._firings_path:
-            raise Exception('Unable to load firings file: ' + firings_file)
+            raise Exception(f'Unable to load firings file: {firings_file}')
 
         self._firings = readmda(self._firings_path)
         self._sampling_frequency = samplerate
@@ -200,9 +201,7 @@ class MdaSortingExtractor(SortingExtractor):
 
 
 def _concatenate(list):
-    if len(list) == 0:
-        return np.array([])
-    return np.concatenate(list)
+    return np.array([]) if len(list) == 0 else np.concatenate(list)
 
 
 def is_kbucket_url(path):
@@ -233,15 +232,12 @@ def write_recording_blocks(recording, save_path, params=dict(), raw_fname='raw.m
     total_size = 0
     for i in range(n_blocks):
         i_start = (i*block_size)
-        if i == (n_blocks - 1):
-            i_end = N
-        else:
-            i_end = i_start+block_size
+        i_end = N if i == (n_blocks - 1) else i_start+block_size
         block = recording.get_traces(start_frame=i_start, end_frame=i_end)
         if i == 0:
-            writemda32(block, save_path + '/' + raw_fname)
+            writemda32(block, f'{save_path}/{raw_fname}')
         else:
-            appendmda(block, save_path + '/' + raw_fname)
+            appendmda(block, f'{save_path}/{raw_fname}')
         # write block
         total_size = total_size + np.shape(block)[1]
 
@@ -253,9 +249,9 @@ def write_recording_blocks(recording, save_path, params=dict(), raw_fname='raw.m
         geom[ii, :] = list(location_ii)
 
     params["samplerate"] = recording.get_sampling_frequency()
-    with open(save_path + '/' + params_fname,'w') as f:
+    with open(f'{save_path}/{params_fname}', 'w') as f:
         json.dump(params, f)
-    np.savetxt(save_path + '/geom.csv', geom, delimiter=',')
+    np.savetxt(f'{save_path}/geom.csv', geom, delimiter=',')
 
 def _listify_ndarray(x):
     if x.ndim == 1:
@@ -264,22 +260,16 @@ def _listify_ndarray(x):
         else:
             return [float(val) for val in x]
     elif x.ndim == 2:
-        ret = []
-        for j in range(x.shape[1]):
-            ret.append(_listify_ndarray(x[:, j]))
+        ret = [_listify_ndarray(x[:, j]) for j in range(x.shape[1])]
         return ret
     elif x.ndim == 3:
-        ret = []
-        for j in range(x.shape[2]):
-            ret.append(_listify_ndarray(x[:, :, j]))
+        ret = [_listify_ndarray(x[:, :, j]) for j in range(x.shape[2])]
         return ret
     elif x.ndim == 4:
-        ret = []
-        for j in range(x.shape[3]):
-            ret.append(_listify_ndarray(x[:, :, :, j]))
+        ret = [_listify_ndarray(x[:, :, :, j]) for j in range(x.shape[3])]
         return ret
     else:
-        raise Exception('Cannot listify ndarray with {} dims.'.format(x.ndim))
+        raise Exception(f'Cannot listify ndarray with {x.ndim} dims.')
 
 def _json_serialize(x):
     if isinstance(x, np.ndarray):
@@ -289,14 +279,10 @@ def _json_serialize(x):
     elif isinstance(x, np.floating):
         return float(x)
     elif type(x) == dict:
-        ret = dict()
-        for key, val in x.items():
-            ret[key] = _json_serialize(val)
+        ret = {key: _json_serialize(val) for key, val in x.items()}
         return ret
     elif type(x) == list:
-        ret = []
-        for i, val in enumerate(x):
-            ret.append(_json_serialize(val))
+        ret = [_json_serialize(val) for val in x]
         return ret
     else:
         return x

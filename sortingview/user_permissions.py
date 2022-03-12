@@ -27,5 +27,4 @@ def set_user_feed_permissions(user_id: str, *, feed_id: str, append: Union[None,
 def get_user_permissions_dict(user_id: str):
     p = kc.get(key)
     if p is None: p = {}
-    p_user = p.get(user_id, {})
-    return p_user
+    return p.get(user_id, {})

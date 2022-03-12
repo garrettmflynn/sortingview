@@ -53,13 +53,13 @@ class Bin2RecordingExtractor(se.RecordingExtractor):
             num_bytes_per_entry = 8
         else:
             raise Exception(f'Unexpected dtype: {self._dtype}')
-        
+
         i1 = start_frame * num_bytes_per_entry * self._raw_num_channels
         i2 = end_frame * num_bytes_per_entry * self._raw_num_channels
-        
+
         buf = kc.load_bytes(self._raw, start=i1, end=i2)
         X = np.frombuffer(buf, dtype=self._dtype).reshape((end_frame - start_frame, self._raw_num_channels))
-        
+
         # old method
         # ret = np.zeros((M, N))
         # for ii, ch_id in enumerate(channel_ids):
@@ -67,6 +67,4 @@ class Bin2RecordingExtractor(se.RecordingExtractor):
 
         # new (equivalent method)
         X = X.T.copy() # this is the part we want to try to speed up
-        ret = X[[int(self._channel_map[str(ch_id)]) for ch_id in channel_ids]]
-        
-        return ret
+        return X[[int(self._channel_map[str(ch_id)]) for ch_id in channel_ids]]

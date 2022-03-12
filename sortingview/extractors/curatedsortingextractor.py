@@ -27,10 +27,7 @@ class CuratedSortingExtractor(se.SortingExtractor):
     def get_unit_spike_train(self, unit_id, start_frame=None, end_frame=None):
         mg = self._merge_groups_by_unit_id[unit_id]
         trains = [self._parent_sorting.get_unit_spike_train(unit_id=x) for x in mg]
-        if len(trains) == 1:
-            return trains[0]
-        else:
-            return np.sort(np.concatenate(trains))
+        return trains[0] if len(trains) == 1 else np.sort(np.concatenate(trains))
 
     def get_sampling_frequency(self):
         return self._sampling_frequency

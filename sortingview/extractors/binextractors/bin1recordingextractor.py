@@ -40,13 +40,13 @@ class Bin1RecordingExtractor(se.RecordingExtractor):
             channel_ids = self._channel_ids
         # M = len(channel_ids)
         # N = end_frame - start_frame
-        
+
         i1 = start_frame * 2 * self._raw_num_channels
         i2 = end_frame * 2 * self._raw_num_channels
-        
+
         buf = kc.load_bytes(self._raw, start=i1, end=i2)
         X = np.frombuffer(buf, dtype=np.int16).reshape((end_frame - start_frame, self._raw_num_channels))
-        
+
         # old method
         # ret = np.zeros((M, N))
         # for ii, ch_id in enumerate(channel_ids):
@@ -54,6 +54,4 @@ class Bin1RecordingExtractor(se.RecordingExtractor):
 
         # new (equivalent method)
         X = X.T.copy() # this is the part we want to try to speed up
-        ret = X[[int(self._channel_map[str(ch_id)]) for ch_id in channel_ids]]
-        
-        return ret
+        return X[[int(self._channel_map[str(ch_id)]) for ch_id in channel_ids]]

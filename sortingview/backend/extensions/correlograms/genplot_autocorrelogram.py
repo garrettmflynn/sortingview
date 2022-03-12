@@ -18,9 +18,8 @@ from ._correlograms_phy import compute_correlograms
 @serialize_wrapper
 def fetch_correlogram_plot_data(sorting_object, unit_x, unit_y=None):
     S = LabboxEphysSortingExtractor(sorting_object)
-    data = _get_correlogram_data(sorting=S, unit_id1=unit_x, unit_id2=unit_y,
+    return _get_correlogram_data(sorting=S, unit_id1=unit_x, unit_id2=unit_y,
         window_size_msec=50, bin_size_msec=1)
-    return data
 
 def _get_time_segments(max_time: int, segment_size: int, num_segments: int):
     interval = np.floor(max_time / num_segments)
@@ -94,11 +93,10 @@ def task_fetch_correlogram_plot_data(*, sorting_object, unit_x, unit_y=None, sub
         )
 
 def _get_spike_train(*, sorting: se.SortingExtractor, unit_id):
-    if type(unit_id) == list:
-        x = sorting.get_units_spike_train(unit_ids=unit_id)
-        return np.sort(np.concatenate(x))
-    else:
+    if type(unit_id) != list:
         return sorting.get_unit_spike_train(unit_id=unit_id)
+    x = sorting.get_units_spike_train(unit_ids=unit_id)
+    return np.sort(np.concatenate(x))
 
 def _get_correlogram_data(*, sorting, unit_id1, unit_id2=None, window_size_msec, bin_size_msec):
     auto = unit_id2 is None or unit_id2 == unit_id1

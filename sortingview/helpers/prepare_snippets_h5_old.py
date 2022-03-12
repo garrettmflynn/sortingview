@@ -32,7 +32,7 @@ def prepare_snippets_h5(
     sorting = LabboxEphysSortingExtractor(sorting_object)
 
     with kc.TemporaryDirectory() as tmpdir:
-        save_path = tmpdir + '/snippets.h5'
+        save_path = f'{tmpdir}/snippets.h5'
         prepare_snippets_h5_from_extractors(
             recording=recording,
             sorting=sorting,
@@ -62,7 +62,7 @@ def prepare_snippets_h5_from_extractors(
 
     unit_ids = sorting.get_unit_ids()
     samplerate = recording.get_sampling_frequency()
-    
+
     # Use this optimized function rather than spiketoolkit's version
     # for efficiency with long recordings and/or many channels, units or spikes
     # we should submit this to the spiketoolkit project as a PR
@@ -99,7 +99,7 @@ def prepare_snippets_h5_from_extractors(
         f.create_dataset('channel_ids', data=np.array(recording.get_channel_ids()))
         f.create_dataset('num_frames', data=np.array([recording.get_num_frames()]).astype(np.int32))
         channel_locations = recording.get_channel_locations()
-        f.create_dataset(f'channel_locations', data=np.array(channel_locations))
+        f.create_dataset('channel_locations', data=np.array(channel_locations))
         for ii, unit_id in enumerate(unit_ids):
             x = sorting.get_unit_spike_train(unit_id=unit_id)
             f.create_dataset(f'unit_spike_trains/{unit_id}', data=np.array(x).astype(np.float64))
